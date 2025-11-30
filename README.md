@@ -17,13 +17,13 @@ A web-based calendar for viewing Denver Recreation Center schedules with filteri
 
 ## Live Demo
 
-[View the calendar](https://your-username.github.io/denver-rec-centers/) *(update after deploying)*
+[View the calendar](https://dustinwicker.github.io/denver-rec-centers/)
 
 ## Quick Start
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/denver-rec-centers.git
+   git clone https://github.com/dustinwicker/denver-rec-centers.git
    cd denver-rec-centers
    ```
 

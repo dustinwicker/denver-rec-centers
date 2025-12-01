@@ -341,6 +341,9 @@
 
   function renderCalendar(parsed) {
     clearCalendar();
+    // Clear time indicator tracking
+    timeIndicatorElements = [];
+    
     const gyms = parsed.gyms || [];
     if(!gyms.length) {
       calendarRoot.innerHTML = '<div style="padding:20px">No events found.</div>';
@@ -638,29 +641,146 @@
     });
   }
 
+  // Track the user-selected time (null = use current time)
+  let userSelectedMinutes = null;
+  let timeIndicatorElements = [];
+  let currentHourHeight = 56;
+  let currentStartHour = 5;
+  let currentEndHour = 22;
+
   // Add current time indicator line to a grid
   function addCurrentTimeIndicator(grid, startHour, endHour, hourHeight, isFirst = false) {
+    // Store these for drag calculations
+    currentHourHeight = hourHeight;
+    currentStartHour = startHour;
+    currentEndHour = endHour;
+    
     const now = new Date();
-    const currentHour = now.getHours();
-    const currentMins = now.getMinutes();
-    const totalMins = currentHour * 60 + currentMins;
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    const displayMins = userSelectedMinutes !== null ? userSelectedMinutes : currentMins;
     
-    // Check if current time is within visible range
-    if (totalMins < startHour * 60 || totalMins > endHour * 60) return;
+    // Check if time is within visible range
+    if (displayMins < startHour * 60 || displayMins > endHour * 60) return;
     
-    const topPx = (totalMins - startHour * 60) / 60 * hourHeight;
+    const topPx = (displayMins - startHour * 60) / 60 * hourHeight;
     
     // Add indicator line to the grid
     const timeLine = el('div', 'current-time-line');
     timeLine.style.top = topPx + 'px';
     
-    // Add dot only on the first column
+    // Track all time lines for synchronized updates
+    timeIndicatorElements.push(timeLine);
+    
+    // Add draggable dot only on the first column
     if (isFirst) {
       const timeDot = el('div', 'time-dot');
+      timeDot.setAttribute('draggable', 'false'); // We'll use mouse events instead
+      
+      // Add time label
+      const timeLabel = el('div', 'time-label');
+      timeLabel.textContent = formatMinutesToTime(displayMins);
+      timeDot.appendChild(timeLabel);
+      
+      // Add reset button (only shows when user has moved the line)
+      if (userSelectedMinutes !== null) {
+        const resetBtn = el('div', 'time-reset');
+        resetBtn.textContent = '↺';
+        resetBtn.title = 'Reset to current time';
+        resetBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          userSelectedMinutes = null;
+          renderCalendar();
+        });
+        timeDot.appendChild(resetBtn);
+      }
+      
       timeLine.appendChild(timeDot);
+      
+      // Make the dot draggable
+      setupDragHandler(timeDot, grid);
     }
     
     grid.appendChild(timeLine);
+  }
+  
+  // Format minutes to readable time (e.g., 480 -> "8:00 AM")
+  function formatMinutesToTime(totalMins) {
+    let hours = Math.floor(totalMins / 60);
+    const mins = totalMins % 60;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    if (hours > 12) hours -= 12;
+    if (hours === 0) hours = 12;
+    return `${hours}:${String(mins).padStart(2, '0')} ${ampm}`;
+  }
+  
+  // Setup drag handling for the time indicator dot
+  function setupDragHandler(dot, grid) {
+    let isDragging = false;
+    let startY = 0;
+    let startTop = 0;
+    
+    const onMouseDown = (e) => {
+      e.preventDefault();
+      isDragging = true;
+      startY = e.clientY || e.touches?.[0]?.clientY || 0;
+      const timeLine = dot.parentElement;
+      startTop = parseFloat(timeLine.style.top) || 0;
+      
+      document.body.style.userSelect = 'none';
+      dot.classList.add('dragging');
+    };
+    
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      
+      const clientY = e.clientY || e.touches?.[0]?.clientY || 0;
+      const deltaY = clientY - startY;
+      let newTop = startTop + deltaY;
+      
+      // Clamp to valid range
+      const minTop = 0;
+      const maxTop = (currentEndHour - currentStartHour) * currentHourHeight;
+      newTop = Math.max(minTop, Math.min(maxTop, newTop));
+      
+      // Update all time lines
+      timeIndicatorElements.forEach(line => {
+        line.style.top = newTop + 'px';
+      });
+      
+      // Calculate and display the time
+      const newMins = Math.round((newTop / currentHourHeight) * 60 + currentStartHour * 60);
+      const timeLabel = dot.querySelector('.time-label');
+      if (timeLabel) {
+        timeLabel.textContent = formatMinutesToTime(newMins);
+      }
+    };
+    
+    const onMouseUp = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      
+      document.body.style.userSelect = '';
+      dot.classList.remove('dragging');
+      
+      // Calculate final time from position
+      const timeLine = dot.parentElement;
+      const finalTop = parseFloat(timeLine.style.top) || 0;
+      userSelectedMinutes = Math.round((finalTop / currentHourHeight) * 60 + currentStartHour * 60);
+      
+      // Re-render to add reset button
+      renderCalendar();
+    };
+    
+    // Mouse events
+    dot.addEventListener('mousedown', onMouseDown);
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+    
+    // Touch events for mobile
+    dot.addEventListener('touchstart', onMouseDown, { passive: false });
+    document.addEventListener('touchmove', onMouseMove, { passive: false });
+    document.addEventListener('touchend', onMouseUp);
   }
 
   // Track selected filters

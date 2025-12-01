@@ -559,7 +559,8 @@
 }
 .time-label{
   position:absolute;
-  left:22px;
+  right:22px;
+  left:auto;
   top:50%;
   transform:translateY(-50%);
   background:#f97316;
@@ -574,7 +575,7 @@
 }
 .time-reset{
   position:absolute;
-  left:90px;
+  left:24px;
   top:50%;
   transform:translateY(-50%);
   background:#fff;

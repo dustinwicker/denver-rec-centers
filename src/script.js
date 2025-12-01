@@ -507,10 +507,16 @@
           const calLink = createGoogleCalendarLink(item, gymName);
           actions.innerHTML = `<a href="${calLink}" target="_blank" class="event-btn cal-btn" title="Add to Google Calendar">📅</a>`;
           
-          // Sign Up link (only if requires signup)
+          // Sign Up link (only if requires signup) - shows confirmation modal
           if (item.requiresSignup) {
-            const signUpLink = `https://groupexpro.com/schedule/522/?view=new`;
-            actions.innerHTML += `<a href="${signUpLink}" target="_blank" class="event-btn signup-btn" title="Sign Up / Reserve">🎟️</a>`;
+            const signUpBtn = el('button', 'event-btn signup-btn');
+            signUpBtn.innerHTML = '🎟️';
+            signUpBtn.title = 'Sign Up / Reserve';
+            signUpBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              showExternalLinkModal(item.className, gymName);
+            });
+            actions.appendChild(signUpBtn);
           }
           
           ev.appendChild(actions);
@@ -576,6 +582,54 @@
   }
   
   // Show event details modal
+  // Show confirmation modal before navigating to external sign-up page
+  function showExternalLinkModal(className, gymName) {
+    // Remove existing modal if any
+    const existingModal = qs('.event-modal-overlay');
+    if (existingModal) existingModal.remove();
+    
+    const signUpLink = `https://groupexpro.com/schedule/522/?view=new`;
+    
+    const overlay = el('div', 'event-modal-overlay');
+    const modal = el('div', 'event-modal external-link-modal');
+    
+    modal.innerHTML = `
+      <button class="modal-close" title="Close">&times;</button>
+      <div class="external-link-icon">🔗</div>
+      <h2 class="modal-title">Leaving This Site</h2>
+      <div class="external-link-message">
+        <p>You are about to leave the Denver Recreation Center Calendar to sign up for:</p>
+        <div class="external-link-class">
+          <strong>${className}</strong>
+          <span>at ${gymName}</span>
+        </div>
+        <p class="external-link-url">You will be redirected to:</p>
+        <code class="external-link-destination">${signUpLink}</code>
+        <p class="external-link-note">This is the official GroupExPro scheduling site for Denver Recreation Centers.</p>
+      </div>
+      <div class="modal-actions">
+        <a href="${signUpLink}" target="_blank" class="modal-btn primary" onclick="this.closest('.event-modal-overlay').remove()">✓ Continue to Sign Up</a>
+        <button class="modal-btn secondary cancel-btn">Cancel</button>
+      </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Close handlers
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+    modal.querySelector('.modal-close').addEventListener('click', () => overlay.remove());
+    modal.querySelector('.cancel-btn').addEventListener('click', () => overlay.remove());
+    document.addEventListener('keydown', function escHandler(e) {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+      }
+    });
+  }
+
   function showEventModal(item, gymName) {
     // Remove existing modal if any
     const existingModal = qs('.event-modal-overlay');
@@ -617,7 +671,7 @@
       <div class="modal-actions">
         ${!item.cancelled ? `
           <a href="${calLink}" target="_blank" class="modal-btn primary">📅 Add to Calendar</a>
-          ${item.requiresSignup ? `<a href="${signUpLink}" target="_blank" class="modal-btn secondary">🎟️ Sign Up / Reserve</a>` : ''}
+          ${item.requiresSignup ? `<button class="modal-btn secondary signup-external-btn">🎟️ Sign Up / Reserve</button>` : ''}
           <a href="${signUpLink}" target="_blank" class="modal-btn tertiary">See More on GroupExPro</a>
         ` : `
           <a href="${signUpLink}" target="_blank" class="modal-btn secondary">View on GroupExPro</a>
@@ -627,6 +681,15 @@
     
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+    
+    // Add click handler for sign up button to show external link modal
+    const signupBtn = modal.querySelector('.signup-external-btn');
+    if (signupBtn) {
+      signupBtn.addEventListener('click', () => {
+        overlay.remove();
+        showExternalLinkModal(item.className, gymName);
+      });
+    }
     
     // Close handlers
     overlay.addEventListener('click', (e) => {

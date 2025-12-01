@@ -112,8 +112,13 @@
           // User is at home - use accurate Google Maps data
           console.log(`User is at home (${distanceFromHome.toFixed(2)} mi from home) - using Google Maps data`);
           distancesData = staticDistancesData;
-          locationStatus = 'granted';
+          locationStatus = 'home'; // New status for "at home"
           updateLocationIndicator();
+          
+          // Re-apply filters to update the display with Google Maps data
+          if (allData.length > 0) {
+            applyFilters();
+          }
           return;
         } else {
           console.log(`User is away from home (${distanceFromHome.toFixed(2)} mi) - calculating dynamic distances`);
@@ -125,6 +130,7 @@
       
     } catch (e) {
       console.log('Could not get location, using static data:', e.message);
+      distancesData = staticDistancesData; // Fall back to static data
       locationStatus = 'denied';
       updateLocationIndicator();
     }
@@ -179,13 +185,17 @@
         indicator.innerHTML = '📍 <span>Getting location...</span>';
         indicator.className = 'location-indicator loading';
         break;
+      case 'home':
+        indicator.innerHTML = '🏠 <span>At home</span> <button id="refresh-location" title="Refresh location">↻</button>';
+        indicator.className = 'location-indicator home';
+        break;
       case 'granted':
         indicator.innerHTML = '📍 <span>Your location</span> <button id="refresh-location" title="Refresh location">↻</button>' + 
           (!hasApiKey ? ' <button id="setup-api-key" title="Add API key for accurate times">⚙️</button>' : '');
         indicator.className = 'location-indicator active';
         break;
       case 'cached':
-        indicator.innerHTML = '📍 <span>Cached</span> <button id="refresh-location" title="Refresh location">↻</button>' +
+        indicator.innerHTML = '📍 <span>Away (cached)</span> <button id="refresh-location" title="Refresh location">↻</button>' +
           (!hasApiKey ? ' <button id="setup-api-key" title="Add API key for accurate times">⚙️</button>' : '');
         indicator.className = 'location-indicator cached';
         break;

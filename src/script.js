@@ -608,13 +608,19 @@
         <p class="external-link-note">This is the official GroupExPro scheduling site for Denver Recreation Centers.</p>
       </div>
       <div class="modal-actions">
-        <a href="${signUpLink}" target="_blank" class="modal-btn primary" onclick="this.closest('.event-modal-overlay').remove()">✓ Continue to Sign Up</a>
+        <button class="modal-btn primary continue-btn">✓ Continue to Sign Up</button>
         <button class="modal-btn secondary cancel-btn">Cancel</button>
       </div>
     `;
     
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
+    
+    // Continue button - open link then close modal
+    modal.querySelector('.continue-btn').addEventListener('click', () => {
+      window.open(signUpLink, '_blank');
+      overlay.remove();
+    });
     
     // Close handlers
     overlay.addEventListener('click', (e) => {
@@ -690,6 +696,17 @@
         showExternalLinkModal(item.className, gymName);
       });
     }
+    
+    // Handle external links - open in new tab then close modal
+    modal.querySelectorAll('a[target="_blank"]').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.open(link.href, '_blank');
+        // Small delay before closing to ensure the new tab opens
+        setTimeout(() => overlay.remove(), 100);
+      });
+    });
     
     // Close handlers
     overlay.addEventListener('click', (e) => {

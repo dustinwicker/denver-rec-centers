@@ -390,10 +390,11 @@
   display:flex;
   background:transparent;
   padding-left:8px;
+  flex:1;
 }
 .day-column{
-  min-width:200px;
-  flex-shrink:0;
+  min-width:150px;
+  flex:1;
   border-left:1px solid rgba(0,0,0,0.04);
   margin-right:8px;
   background:var(--card);

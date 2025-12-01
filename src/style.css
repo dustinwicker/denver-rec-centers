@@ -36,7 +36,7 @@
     border-bottom:1px solid rgba(0,0,0,0.06);
   }
 .topbar .brand{font-weight:700; font-size:0.95rem}
-.controls{display:flex; gap:8px; align-items:center}
+.controls{display:flex; gap:12px; align-items:center}
 .controls button{
   padding:8px 14px;
   border-radius:6px;
@@ -47,6 +47,50 @@
   font-size:16px;
 }
 .controls button:hover{opacity:0.85}
+
+/* Location indicator */
+.location-indicator{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  padding:6px 10px;
+  border-radius:6px;
+  background:rgba(255,255,255,0.1);
+  color:rgba(255,255,255,0.8);
+  cursor:default;
+}
+.location-indicator span{
+  max-width:120px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.location-indicator button{
+  padding:2px 6px !important;
+  font-size:12px !important;
+  background:rgba(255,255,255,0.2) !important;
+  border-radius:4px !important;
+  min-width:auto !important;
+}
+.location-indicator button:hover{
+  background:rgba(255,255,255,0.3) !important;
+}
+.location-indicator.loading{
+  color:#fbbf24;
+}
+.location-indicator.active{
+  color:#34d399;
+  background:rgba(52,211,153,0.15);
+}
+.location-indicator.cached{
+  color:#60a5fa;
+  background:rgba(96,165,250,0.15);
+}
+.location-indicator.denied{
+  color:#f87171;
+  background:rgba(248,113,113,0.15);
+}
 
 /* Day Selector Navigation */
 .day-selector{

@@ -60,17 +60,99 @@
   let currentDayIndex = 0;
   let distancesData = null; // Store distances data
   let classDescriptions = {}; // Store class descriptions
+  let locationStatus = 'unknown'; // 'unknown', 'loading', 'granted', 'denied', 'cached'
+  let userLocation = null;
 
-  // Load distances data
+  // Load distances data - now uses geolocation service
   async function loadDistancesData() {
+    // First try to load static data as fallback
     try {
       const response = await fetch('data/rec_centers_distances.json');
       if (response.ok) {
         distancesData = await response.json();
-        console.log('Loaded distances data for', distancesData.centers?.length, 'centers');
+        console.log('Loaded static distances data for', distancesData.centers?.length, 'centers');
       }
     } catch(e) {
-      console.log('No distances data available (run distances.py first)');
+      console.log('No static distances data available');
+    }
+    
+    // Then try to get dynamic location-based distances
+    if (typeof GeoService !== 'undefined') {
+      await loadDynamicDistances();
+    }
+  }
+  
+  // Load dynamic distances based on user's current location
+  async function loadDynamicDistances(forceRefresh = false) {
+    if (typeof GeoService === 'undefined') {
+      console.log('GeoService not available');
+      return;
+    }
+    
+    locationStatus = 'loading';
+    updateLocationIndicator();
+    
+    try {
+      const result = await GeoService.getDistances((msg, pct) => {
+        console.log(`[Geo] ${msg} (${pct}%)`);
+      }, forceRefresh);
+      
+      if (result.data) {
+        distancesData = result.data;
+        userLocation = result.userLocation;
+        locationStatus = result.source === 'cache' ? 'cached' : 'granted';
+        console.log(`Loaded ${result.source} distances for ${distancesData.centers?.length} centers`);
+        
+        // Re-apply filters to update the display with new distances
+        if (allData.length > 0) {
+          applyFilters();
+        }
+      } else {
+        locationStatus = 'denied';
+        console.log('Could not get location-based distances:', result.error);
+      }
+    } catch (e) {
+      locationStatus = 'denied';
+      console.error('Error loading dynamic distances:', e);
+    }
+    
+    updateLocationIndicator();
+  }
+  
+  // Update the location indicator in the UI
+  function updateLocationIndicator() {
+    let indicator = qs('#location-indicator');
+    if (!indicator) return;
+    
+    switch (locationStatus) {
+      case 'loading':
+        indicator.innerHTML = '📍 <span>Getting location...</span>';
+        indicator.className = 'location-indicator loading';
+        break;
+      case 'granted':
+        indicator.innerHTML = '📍 <span>Using your location</span> <button id="refresh-location" title="Refresh location">↻</button>';
+        indicator.className = 'location-indicator active';
+        break;
+      case 'cached':
+        indicator.innerHTML = '📍 <span>Cached location</span> <button id="refresh-location" title="Refresh location">↻</button>';
+        indicator.className = 'location-indicator cached';
+        break;
+      case 'denied':
+        indicator.innerHTML = '📍 <span>Location unavailable</span> <button id="refresh-location" title="Try again">↻</button>';
+        indicator.className = 'location-indicator denied';
+        break;
+      default:
+        indicator.innerHTML = '📍 <span>Enable location</span>';
+        indicator.className = 'location-indicator unknown';
+    }
+    
+    // Add click handler for refresh button
+    const refreshBtn = indicator.querySelector('#refresh-location');
+    if (refreshBtn) {
+      refreshBtn.onclick = (e) => {
+        e.stopPropagation();
+        loadDynamicDistances(true);
+      };
     }
   }
 
@@ -141,9 +223,6 @@
             break;
           case 'walking':
             sortValue = info.walking_minutes || Infinity;
-            break;
-          case 'transit':
-            sortValue = info.transit_minutes || Infinity;
             break;
         }
       }
@@ -251,9 +330,6 @@
         break;
       case 'biking':
         mode = 'bicycling';
-        break;
-      case 'transit':
-        mode = 'transit';
         break;
       default:
         mode = 'driving';
@@ -413,10 +489,6 @@
           case 'walking':
             icon = '🚶';
             distText = `${distanceInfo.walking_miles} mi, ${distanceInfo.walking_time}`;
-            break;
-          case 'transit':
-            icon = '🚌';
-            distText = `${distanceInfo.transit_miles} mi, ${distanceInfo.transit_time}`;
             break;
         }
         

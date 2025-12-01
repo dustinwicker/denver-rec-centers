@@ -108,10 +108,6 @@
           homeLocation.lat, homeLocation.lng
         );
         
-        console.log(`Distance from home: ${distanceFromHome.toFixed(3)} miles`);
-        console.log(`Your location: ${userPos.lat}, ${userPos.lng}`);
-        console.log(`Home location: ${homeLocation.lat}, ${homeLocation.lng}`);
-        
         if (distanceFromHome <= 0.3) {
           // User is at home - use accurate Google Maps data
           console.log(`User is at home (${distanceFromHome.toFixed(2)} mi from home) - using Google Maps data`);

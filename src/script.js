@@ -87,8 +87,12 @@
     }
     
     // Then check if user is away from home - if so, use dynamic distances
+    // IMPORTANT: This will check location and use static data if at home
     if (typeof GeoService !== 'undefined') {
       await checkLocationAndLoadDistances();
+    } else {
+      // If GeoService not available, just use static data
+      distancesData = staticDistancesData;
     }
   }
   
@@ -101,7 +105,7 @@
       const userPos = await GeoService.getCurrentPosition();
       userLocation = userPos;
       
-      // Check if user is within 0.25 miles of home
+      // ALWAYS check if user is at home FIRST, before using any cached dynamic data
       if (homeLocation && staticDistancesData) {
         const distanceFromHome = GeoService.haversineDistance(
           userPos.lat, userPos.lng,
@@ -112,7 +116,7 @@
           // User is at home - use accurate Google Maps data
           console.log(`User is at home (${distanceFromHome.toFixed(2)} mi from home) - using Google Maps data`);
           distancesData = staticDistancesData;
-          locationStatus = 'home'; // New status for "at home"
+          locationStatus = 'home';
           
           // Clear any cached dynamic data since we're using static
           if (typeof GeoService !== 'undefined') {
@@ -125,13 +129,13 @@
           if (allData.length > 0) {
             applyFilters();
           }
-          return;
+          return; // IMPORTANT: Return early, don't load dynamic distances
         } else {
-          console.log(`User is away from home (${distanceFromHome.toFixed(2)} mi) - calculating dynamic distances`);
+          console.log(`User is away from home (${distanceFromHome.toFixed(2)} mi) - will use dynamic distances`);
         }
       }
       
-      // User is away from home - use dynamic distances
+      // Only get here if user is away from home - use dynamic distances
       await loadDynamicDistances(false);
       
     } catch (e) {
